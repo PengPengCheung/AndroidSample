@@ -1,10 +1,9 @@
 package com.peng.androidsample.sample.widget.listview;
 
+import android.util.Log;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.BaseAdapter;
-
-import com.peng.androidsample.sample.utils.LogUtil;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -24,7 +23,7 @@ public abstract class ListViewAdapter extends BaseAdapter {
         super();
         mItemViewDataList = getDataList();
         if (mItemViewDataList == null) {
-            LogUtil.e(TAG, "DataList is null");
+            Log.e(TAG, "ListViewAdapter Constructor: DataList is null");
             mItemViewDataList = new ArrayList<>();
         }
     }
@@ -41,7 +40,7 @@ public abstract class ListViewAdapter extends BaseAdapter {
     @Override
     public Object getItem(int position) {
         if (position >= mItemViewDataList.size()) {
-            LogUtil.e(TAG, "DataList getItem null");
+            Log.e(TAG, "DataList getItem null");
             return new Object();
         }
         return mItemViewDataList.get(position);
