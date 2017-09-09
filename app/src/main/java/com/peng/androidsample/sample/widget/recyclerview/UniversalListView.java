@@ -1,0 +1,223 @@
+package com.peng.androidsample.sample.widget.recyclerview;
+
+import android.app.Activity;
+import android.content.Context;
+import android.os.Bundle;
+import android.support.v4.widget.SwipeRefreshLayout;
+import android.support.v7.widget.DefaultItemAnimator;
+import android.support.v7.widget.LinearLayoutManager;
+import android.support.v7.widget.RecyclerView;
+import android.view.LayoutInflater;
+import android.view.View;
+import android.view.ViewGroup;
+
+
+/**
+ * Created by peng on 2017/3/14.
+ */
+
+public class UniversalListView {
+
+    private static final String TAG = UniversalListView.class.getSimpleName();
+
+    private int mLayoutResId = DefaultStyle.sLayoutResId;
+    private int mSwipeRefreshWidgetId = DefaultStyle.sSwipeRefreshWidgetId;
+    private int mRecycleViewId = DefaultStyle.sRecycleViewId;
+
+    private Activity mActivity;
+    private View mView;
+    private RecyclerView mRecyclerView;
+    private SwipeRefreshLayout mSwipeRefreshWidget;
+    private RecyclerViewAdapter mRecyclerViewAdapter;
+    private LinearLayoutManager mLayoutManager;
+    private ItemViewListener mItemViewListener;
+    private OnUniversalListViewRefreshListener mRefreshListener;
+
+    private boolean isPull = true; // 下拉刷新为true，上拉加载为false
+
+    public UniversalListView(Activity activity, View view){
+        mActivity = activity;
+        mView = view;
+        init(mView, mSwipeRefreshWidgetId, mRecycleViewId);
+    }
+
+    public UniversalListView(Activity activity, LayoutInflater inflater, ViewGroup container, Bundle bundle){
+        mActivity = activity;
+        mView = inflater.inflate(mLayoutResId, container, false);
+        init(mView, mSwipeRefreshWidgetId, mRecycleViewId);
+    }
+
+
+    public void setItemViewListener(ItemViewListener l){
+        mItemViewListener = l;
+    }
+
+    public UniversalListView(Activity context, int swipeRefreshWidgetId, int recycleViewId){
+        mActivity = context;
+        init(mActivity, swipeRefreshWidgetId, recycleViewId);
+    }
+
+    public UniversalListView(Activity activity) {
+        mActivity = activity;
+        init(mActivity, DefaultStyle.sSwipeRefreshWidgetId, DefaultStyle.sRecycleViewId);
+    }
+
+//    public UniversalListView(Activity activity, DefaultStyle style) {
+//        mActivity = activity;
+//        
+//    }
+
+    public RecyclerViewAdapter getAdapter(){
+        return mRecyclerViewAdapter;
+    }
+
+    public View getUniversalListView(){
+        return mView;
+    }
+
+    private void init(View view, int swipeRefreshWidgetId, int recycleViewId){
+        findViews(view, swipeRefreshWidgetId, recycleViewId);
+        setViews();
+    }
+
+    private void init(Activity activity, int swipeRefreshWidgetId, int recycleViewId){
+        findViews(activity, swipeRefreshWidgetId, recycleViewId);
+        setViews();
+    }
+
+    private void findViews(Activity activity, int swipeRefreshWidgetId, int recycleViewId){
+        mSwipeRefreshWidget = (SwipeRefreshLayout) activity.findViewById(swipeRefreshWidgetId);
+        mRecyclerView = (RecyclerView) activity.findViewById(recycleViewId);
+
+    }
+
+    private void findViews(View view, int swipeRefreshWidgetId, int recycleViewId){
+        mSwipeRefreshWidget = (SwipeRefreshLayout) view.findViewById(swipeRefreshWidgetId);
+        mRecyclerView = (RecyclerView) view.findViewById(recycleViewId);
+    }
+
+    public void scrollToBottom(){
+        if(mRecyclerView != null && mRecyclerViewAdapter != null){
+//            mRecyclerView.smoothScrollToPosition(mRecyclerViewAdapter.getItemCount() - 1);
+        }
+    }
+
+    public void setRefreshListener(OnUniversalListViewRefreshListener l){
+        mRefreshListener = l;
+    }
+
+    private void setViews(){
+        mLayoutManager = new LinearLayoutManager(mActivity);
+        mRecyclerView.setLayoutManager(mLayoutManager);//为RecyclerView指定布局管理对象
+
+        mSwipeRefreshWidget.setColorSchemeResources(DefaultStyle.sLoadingColors);
+        mSwipeRefreshWidget.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
+            @Override
+            public void onRefresh() {
+//                refresh();
+                if(mRefreshListener != null){
+                    mRefreshListener.refresh();
+                }
+            }
+        });//实现onRefresh方法，进行刷新
+
+        mSwipeRefreshWidget.setEnabled(false);
+
+        mRecyclerView.setHasFixedSize(true);
+
+
+        mRecyclerView.setItemAnimator(new DefaultItemAnimator());//设置动画
+
+        DividerItemDecoration dividerItemDecoration = new DividerItemDecoration(
+                mActivity, DividerItemDecoration.VERTICAL_LIST);
+        int spacingPixels = mActivity.getResources().getDimensionPixelSize(DefaultStyle.sItemDividerSpace);
+        dividerItemDecoration.setItemDividerSpace(spacingPixels);
+        mRecyclerView.addItemDecoration(dividerItemDecoration);
+
+        if(mRecyclerViewAdapter == null){
+            mRecyclerViewAdapter = new RecyclerViewAdapter(mActivity);
+        }
+
+
+        mRecyclerViewAdapter.setOnItemViewListener(new RecyclerViewAdapter.OnItemViewListener() {
+            @Override
+            public RecyclerView.ViewHolder onCreateItemViewHolder(Context context) {
+
+                ItemViewHolder viewHolder = null;
+                if(mItemViewListener != null){
+                    viewHolder = (ItemViewHolder) mItemViewListener.createItemViewHolder(context);
+                }
+                return viewHolder;
+            }
+
+            @Override
+            public void setItemViewContent(RecyclerView.ViewHolder holder, int pos) {
+                if(mItemViewListener != null){
+                    mItemViewListener.setItemViewContent(holder, pos);
+                }
+            }
+        });
+        mRecyclerViewAdapter.setOnItemClickListener(mOnItemClickListener);
+        mRecyclerView.setAdapter(mRecyclerViewAdapter);
+
+        //设置上拉加载的监听器
+        mRecyclerView.addOnScrollListener(mOnScrollListener);
+    }
+
+    public void setVisibility(int visible){
+        if(mSwipeRefreshWidget != null){
+            mSwipeRefreshWidget.setVisibility(visible);
+        }
+        if(mRecyclerView != null){
+            mRecyclerView.setVisibility(visible);
+        }
+    }
+
+    private RecyclerViewAdapter.OnItemClickListener mOnItemClickListener = new RecyclerViewAdapter.OnItemClickListener() {
+
+        @Override
+        public void onItemClick(View view, int position) {
+        }
+    };
+
+    private RecyclerView.OnScrollListener mOnScrollListener = new RecyclerView.OnScrollListener() {
+
+        private int lastVisibleItem;
+
+        @Override
+        public void onScrolled(RecyclerView recyclerView, int dx, int dy) {
+            super.onScrolled(recyclerView, dx, dy);
+            lastVisibleItem = mLayoutManager.findLastVisibleItemPosition();
+        }
+
+        @Override
+        public void onScrollStateChanged(RecyclerView recyclerView, int newState) {
+            super.onScrollStateChanged(recyclerView, newState);
+            if (newState == RecyclerView.SCROLL_STATE_IDLE
+                    && lastVisibleItem + 1 == mRecyclerViewAdapter.getItemCount()
+                    && mRecyclerViewAdapter.isShowFooter()) {
+                //加载更多
+                isPull = false;
+            }
+        }
+    };
+
+    public void setRefreshEnabled(boolean enabled){
+        if(mSwipeRefreshWidget != null){
+            mSwipeRefreshWidget.setEnabled(enabled);
+        }
+    }
+
+    public void showProgress(boolean show){
+        mSwipeRefreshWidget.setRefreshing(show);
+    }
+
+    public interface ItemViewListener {
+        RecyclerView.ViewHolder createItemViewHolder(Context context);
+        void setItemViewContent(RecyclerView.ViewHolder holder, int pos);
+    }
+
+    public interface OnUniversalListViewRefreshListener {
+        void refresh();
+    }
+}
